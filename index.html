@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Dark Theme Variables */
+            --bg-color: #0a0a0a;
+            --glass-bg: rgba(20, 20, 25, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-muted: #a0a0b0;
+            --accent-glow: rgba(99, 102, 241, 0.5);
+            --accent-color: #6366f1;
+            
+            --priority-low: #10b981;
+            --priority-med: #f59e0b;
+            --priority-high: #ef4444;
+            --overdue-glow: rgba(239, 68, 68, 0.4);
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f0f2f5;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(0, 0, 0, 0.1);
+            --text-main: #111827;
+            --text-muted: #4b5563;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            transition: background-color 0.4s ease;
+        }
+
+        /* Animated Background */
+        .animated-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(45deg, #0f0c29, #302b63, #24243e);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            z-index: -1;
+        }
+        [data-theme="light"] .animated-bg {
+            background: linear-gradient(45deg, #e0c3fc, #8ec5fc, #e0c3fc);
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Header & Clock */
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 5%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--glass-border);
+            position: sticky; top: 0; z-index: 10;
+        }
+        
+        .clock-container {
+            text-align: center;
+        }
+        .live-time { font-size: 1.8rem; font-weight: 600; letter-spacing: 2px; }
+        .live-date { font-size: 0.9rem; color: var(--text-muted); }
+
+        .theme-toggle {
+            background: transparent; border: none; color: var(--text-main);
+            font-size: 1.5rem; cursor: pointer; transition: transform 0.3s;
+        }
+        .theme-toggle:hover { transform: rotate(30deg); }
+
+        /* Main Container */
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+
+        /* Controls */
+        .controls {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 30px;
+        }
+        select {
+            background: var(--glass-bg); color: var(--text-main);
+            border: 1px solid var(--glass-border); padding: 10px 20px;
+            border-radius: 12px; outline: none; backdrop-filter: blur(10px);
+        }
+
+        /* Task Grid */
+        .task-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;
+        }
+
+        /* Glassmorphism Task Card */
+        .task-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 20px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative; overflow: hidden;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .task-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
+        
+        .task-card.completed { opacity: 0.6; }
+        .task-card.completed .task-title { text-decoration: line-through; color: var(--text-muted); }
+
+        .task-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .task-title { font-size: 1.2rem; font-weight: 600; word-break: break-word; }
+        
+        .badge {
+            padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+        }
+        .priority-low { background: rgba(16, 185, 129, 0.2); color: var(--priority-low); border: 1px solid var(--priority-low); }
+        .priority-med { background: rgba(245, 158, 11, 0.2); color: var(--priority-med); border: 1px solid var(--priority-med); }
+        .priority-high { background: rgba(239, 68, 68, 0.2); color: var(--priority-high); border: 1px solid var(--priority-high); }
+
+        .task-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;}
+        
+        .countdown {
+            font-family: monospace; font-size: 1rem; font-weight: 600;
+            padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.2);
+            text-align: center; margin-top: auto;
+        }
+        [data-theme="light"] .countdown { background: rgba(0,0,0,0.05); }
+
+        .overdue {
+            border-color: var(--priority-high);
+            box-shadow: 0 0 15px var(--overdue-glow);
+            animation: pulse-red 2s infinite;
+        }
+
+        .actions { display: flex; gap: 10px; margin-top: 10px; justify-content: flex-end; }
+        .btn-icon {
+            background: transparent; border: none; color: var(--text-muted);
+            font-size: 1.1rem; cursor: pointer; transition: color 0.2s;
+        }
+        .btn-icon:hover.complete-btn { color: var(--priority-low); }
+        .btn-icon:hover.delete-btn { color: var(--priority-high); }
+
+        /* Floating Add Button */
+        .fab {
+            position: fixed; bottom: 40px; right: 40px;
+            width: 60px; height: 60px; border-radius: 50%;
+            background: var(--accent-color); color: white;
+            border: none; font-size: 1.5rem; cursor: pointer;
+            box-shadow: 0 0 20px var(--accent-glow);
+            transition: transform 0.3s, box-shadow 0.3s;
+            z-index: 100;
+        }
+        .fab:hover { transform: scale(1.1); box-shadow: 0 0 30px var(--accent-glow); }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+
+        .modal {
+            background: var(--bg-color); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 30px; width: 90%; max-width: 500px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3); transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+        .modal-overlay.active .modal { transform: translateY(0); }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-muted); }
+        .form-group input, .form-group select {
+            width: 100%; padding: 12px; border-radius: 8px;
+            background: var(--glass-bg); color: var(--text-main);
+            border: 1px solid var(--glass-border); outline: none;
+        }
+        .quick-times { display: flex; gap: 10px; margin-top: 10px; }
+        .quick-btn {
+            flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--accent-color);
+            background: transparent; color: var(--accent-color); cursor: pointer; transition: 0.2s;
+        }
+        .quick-btn:hover { background: var(--accent-color); color: white; }
+
+        .modal-actions { display: flex; gap: 15px; margin-top: 25px; }
+        .btn {
+            flex: 1; padding: 12px; border-radius: 8px; border: none;
+            font-weight: 600; cursor: pointer; transition: 0.2s;
+        }
+        .btn-primary { background: var(--accent-color); color: white; }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary { background: transparent; border: 1px solid var(--text-muted); color: var(--text-main); }
+
+        /* Alarm Active Modal */
+        #alarm-modal .modal {
+            border-color: var(--priority-high); box-shadow: 0 0 50px rgba(239, 68, 68, 0.4);
+            text-align: center;
+        }
+        .alarm-icon { font-size: 4rem; color: var(--priority-high); animation: shake 0.5s infinite; margin-bottom: 20px; }
+        #alarm-title { font-size: 1.5rem; margin-bottom: 20px; }
+
+        /* Animations */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-5deg); }
+            75% { transform: translateX(5px) rotate(5deg); }
+        }
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+            50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.6); }
+        }
+        .shaking-card { animation: shake 0.5s infinite; border-color: var(--priority-high) !important; }
+
+    </style>
+</head>
+<body>
+
+    <div class="animated-bg"></div>
+
+    <header>
+        <div style="font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-layer-group" style="color: var(--accent-color);"></i> Nexus
+        </div>
+        <div class="clock-container">
+            <div class="live-time" id="live-time">00:00:00</div>
+            <div class="live-date" id="live-date">--</div>
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()"><i class="fa-solid fa-moon" id="theme-icon"></i></button>
+    </header>
+
+    <div class="container">
+        <div class="controls">
+            <select id="filter-select">
+                <option value="all">All Tasks</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+            </select>
+        </div>
+        <div class="task-grid" id="task-grid">
+            </div>
+    </div>
+
+    <button class="fab" onclick="openTaskModal()"><i class="fa-solid fa-plus"></i></button>
+
+    <div class="modal-overlay" id="task-modal">
+        <div class="modal">
+            <h2 style="margin-bottom: 20px;">New Task</h2>
+            <div class="form-group">
+                <label>Task Title</label>
+                <input type="text" id="task-title-input" placeholder="What needs to be done?">
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Category</label>
+                    <select id="task-category">
+                        <option value="Work">Work</option>
+                        <option value="Personal">Personal</option>
+                        <option value="Health">Health</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Priority</label>
+                    <select id="task-priority">
+                        <option value="low">Low</option>
+                        <option value="med">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Date</label>
+                    <input type="date" id="task-date">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Time</label>
+                    <input type="time" id="task-time">
+                </div>
+            </div>
+            <div class="quick-times">
+                <button class="quick-btn" onclick="addQuickTime(30)">+30 Min</button>
+                <button class="quick-btn" onclick="addQuickTime(60)">+1 Hour</button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('task-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveTask()">Save Task</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="alarm-modal">
+        <div class="modal">
+            <i class="fa-solid fa-bell alarm-icon"></i>
+            <h2>Alarm! Time is up.</h2>
+            <p id="alarm-title" style="color: var(--text-muted); margin-top: 10px;"></p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="snoozeAlarm()">Snooze 5 Min</button>
+                <button class="btn btn-primary" style="background: var(--priority-high);" onclick="dismissAlarm()">Dismiss</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        let tasks = JSON.parse(localStorage.getItem('nexus_tasks')) || [];
+        let currentTheme = localStorage.getItem('nexus_theme') || 'dark';
+        let activeAlarmTask = null;
+        
+        // --- Web Audio API for NATIVE LOUD ALARM (No external files needed) ---
+        let audioContext;
+        let alarmOscillators = [];
+        let alarmInterval;
+
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playAlarmSound() {
+            initAudio();
+            if(audioContext.state === 'suspended') audioContext.resume();
+            
+            // Beep pattern
+            alarmInterval = setInterval(() => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                
+                osc.type = 'square'; // Harsh, loud sound
+                osc.frequency.setValueAtTime(880, audioContext.currentTime); // A5 note
+                
+                gain.gain.setValueAtTime(1, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.4);
+                
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                osc.start();
+                osc.stop(audioContext.currentTime + 0.4);
+            }, 500); // Beep every 500ms
+        }
+
+        function stopAlarmSound() {
+            clearInterval(alarmInterval);
+        }
+
+        // --- Initialization ---
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        updateThemeIcon();
+        renderTasks();
+
+        // --- Live Clock & Engine Loop ---
+        setInterval(() => {
+            const now = new Date();
+            
+            // Update Top Clock
+            document.getElementById('live-time').innerText = now.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute:'2-digit', second:'2-digit' });
+            document.getElementById('live-date').innerText = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+
+            // Engine: Update Countdowns & Check Alarms
+            updateCountdowns(now.getTime());
+            checkAlarms(now.getTime());
+        }, 1000);
+
+        function updateCountdowns(nowTime) {
+            tasks.forEach(task => {
+                if (task.completed || !task.deadline) return;
+                
+                const element = document.getElementById(`countdown-${task.id}`);
+                const card = document.getElementById(`card-${task.id}`);
+                if (!element) return;
+
+                const diff = task.deadline - nowTime;
+
+                if (diff <= 0) {
+                    element.innerText = "00:00:00 (Overdue)";
+                    if (!card.classList.contains('shaking-card')) {
+                        card.classList.add('overdue');
+                    }
+                } else {
+                    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const s = Math.floor((diff % (1000 * 60)) / 1000);
+                    element.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                }
+            });
+        }
+
+        function checkAlarms(nowTime) {
+            // Prevent multiple modals if one is already active
+            if (activeAlarmTask) return; 
+
+            tasks.forEach(task => {
+                if (!task.completed && !task.alarmTriggered && task.deadline && nowTime >= task.deadline) {
+                    triggerAlarm(task);
+                }
+            });
+        }
+
+        // --- Alarm Handling ---
+        function triggerAlarm(task) {
+            activeAlarmTask = task;
+            task.alarmTriggered = true;
+            saveData();
+            
+            document.getElementById('alarm-title').innerText = task.title;
+            document.getElementById('alarm-modal').classList.add('active');
+            
+            const card = document.getElementById(`card-${task.id}`);
+            if(card) card.classList.add('shaking-card');
+
+            playAlarmSound();
+        }
+
+        function dismissAlarm() {
+            stopAlarmSound();
+            if (activeAlarmTask) {
+                const card = document.getElementById(`card-${activeAlarmTask.id}`);
+                if(card) card.classList.remove('shaking-card');
+            }
+            activeAlarmTask = null;
+            closeModal('alarm-modal');
+            renderTasks();
+        }
+
+        function snoozeAlarm() {
+            if (activeAlarmTask) {
+                // Add 5 minutes to deadline
+                activeAlarmTask.deadline += 5 * 60 * 1000;
+                activeAlarmTask.alarmTriggered = false; // Reset trigger so it rings again
+                saveData();
+            }
+            dismissAlarm(); // stops sound and closes modal
+        }
+
+
+        // --- UI Interactions ---
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            localStorage.setItem('nexus_theme', currentTheme);
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            const icon = document.getElementById('theme-icon');
+            icon.className = currentTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        }
+
+        function openTaskModal() {
+            // Set defaults to current time + 1 hour to help user
+            const now = new Date();
+            now.setHours(now.getHours() + 1);
+            document.getElementById('task-date').value = now.toISOString().split('T')[0];
+            document.getElementById('task-time').value = now.toTimeString().slice(0,5);
+            
+            document.getElementById('task-modal').classList.add('active');
+            // Init audio context on first user interaction to bypass browser autoplay blocks
+            initAudio(); 
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+            if(id === 'task-modal') {
+                document.getElementById('task-title-input').value = '';
+            }
+        }
+
+        function addQuickTime(minutes) {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + minutes);
+            document.getElementById('task-date').value = now.toISOString().split('T')[0];
+            document.getElementById('task-time').value = now.toTimeString().slice(0,5);
+        }
+
+        // --- Task CRUD Operations ---
+        function saveTask() {
+            const title = document.getElementById('task-title-input').value.trim();
+            const category = document.getElementById('task-category').value;
+            const priority = document.getElementById('task-priority').value;
+            const dateVal = document.getElementById('task-date').value;
+            const timeVal = document.getElementById('task-time').value;
+
+            if (!title) return alert("Task title is required.");
+            if (!dateVal || !timeVal) return alert("Please select a date and time.");
+
+            const deadlineDate = new Date(`${dateVal}T${timeVal}`);
+
+            const newTask = {
+                id: Date.now().toString(),
+                title,
+                category,
+                priority,
+                deadline: deadlineDate.getTime(),
+                completed: false,
+                alarmTriggered: false
+            };
+
+            tasks.push(newTask);
+            saveData();
+            closeModal('task-modal');
+            renderTasks();
+        }
+
+        function toggleComplete(id) {
+            const task = tasks.find(t => t.id === id);
+            if(task) {
+                task.completed = !task.completed;
+                // If checking off, cancel any future alarms
+                if(task.completed) task.alarmTriggered = true; 
+                saveData();
+                renderTasks();
+            }
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            saveData();
+            renderTasks();
+        }
+
+        function saveData() {
+            localStorage.setItem('nexus_tasks', JSON.stringify(tasks));
+        }
+
+        // --- Rendering ---
+        document.getElementById('filter-select').addEventListener('change', renderTasks);
+
+        function renderTasks() {
+            const grid = document.getElementById('task-grid');
+            grid.innerHTML = '';
+            
+            const filter = document.getElementById('filter-select').value;
+            const nowTime = Date.now();
+
+            // Sort tasks: Active first, then by deadline
+            let filteredTasks = tasks.filter(task => {
+                if(filter === 'active') return !task.completed;
+                if(filter === 'completed') return task.completed;
+                return true;
+            }).sort((a, b) => {
+                if(a.completed !== b.completed) return a.completed ? 1 : -1;
+                return a.deadline - b.deadline;
+            });
+
+            filteredTasks.forEach(task => {
+                const isOverdue = !task.completed && task.deadline < nowTime;
+                
+                const card = document.createElement('div');
+                card.className = `task-card ${task.completed ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}`;
+                card.id = `card-${task.id}`;
+
+                const priorityLabel = task.priority === 'high' ? 'High' : (task.priority === 'med' ? 'Medium' : 'Low');
+                const dateString = new Date(task.deadline).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+
+                card.innerHTML = `
+                    <div class="task-header">
+                        <div class="task-title">${task.title}</div>
+                        <span class="badge priority-${task.priority}">${priorityLabel}</span>
+                    </div>
+                    <div class="task-meta">
+                        <span><i class="fa-regular fa-folder"></i> ${task.category}</span>
+                        <span><i class="fa-regular fa-calendar"></i> ${dateString}</span>
+                    </div>
+                    ${!task.completed ? `<div class="countdown" id="countdown-${task.id}">Loading...</div>` : '<div class="countdown">Completed</div>'}
+                    <div class="actions">
+                        <button class="btn-icon complete-btn" onclick="toggleComplete('${task.id}')">
+                            <i class="fa-solid fa-check-circle"></i>
+                        </button>
+                        <button class="btn-icon delete-btn" onclick="deleteTask('${task.id}')">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            
+            updateCountdowns(Date.now());
+        }
+    </script>
+</body>
+</html>
